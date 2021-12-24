@@ -1,0 +1,62 @@
+html, body, div, form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: lightgrey;
+}
+
+html {
+    height: 100vh;
+}
+
+html, body, form {
+    width: 100vw;
+    background-color: rgb(55,55,55);
+}
+
+body {
+    height: 90vh;
+}
+
+body, div {
+    padding: 10%;
+}
+
+div, h1 {
+    background-color: rgb(50,50,50);
+    border-color: rgb(40,40,40);
+    font-size: larger;
+    text-align: center;
+    height: fit-content;
+    margin: 0;
+}
+
+div {
+    width: 70vw;
+}
+
+h1 {
+    width: fit-content;
+    padding: 10px;
+}
+
+html, body, div {
+    flex-direction: column;
+}
+
+form {
+    flex-direction: row;
+    height: 100%;
+}
+
+input, span, label, button, input:focus {
+    height: fit-content;
+    width: fit-content;
+    background-color: rgb(50,50,50);
+    color: lightgrey;
+    border-color: rgb(40,40,40);
+    font-size: larger;
+    box-shadow: none;
+    outline: none;
+    border-style: solid;
+}
