@@ -17,9 +17,7 @@ public class ImdbqApplication {
 
     public static void main(String[] args) {
         try {
-            long start = System.currentTimeMillis();
             webCrawler.parseSources();
-            System.out.println("parse time: " + (System.currentTimeMillis() - start));
         }
         catch (IOException ex) {
             ex.printStackTrace();

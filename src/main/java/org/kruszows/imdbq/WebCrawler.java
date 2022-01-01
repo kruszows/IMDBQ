@@ -184,9 +184,4 @@ public class WebCrawler {
         return Cache.getQuery(query);
     }
 
-    public void printTree() {
-        System.out.printf("%d movies assigned over %d terms\n", moviesProcessed, movieTermMap.size());
-        System.out.println(movieTermMap.toString());
-    }
-
 }
