@@ -7,8 +7,6 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.io.IOException;
-
 @SpringBootApplication
 @Controller
 public class ImdbqApplication {
@@ -16,12 +14,7 @@ public class ImdbqApplication {
     private static final WebCrawler webCrawler = new WebCrawler();
 
     public static void main(String[] args) {
-        try {
-            webCrawler.parseSources();
-        }
-        catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        webCrawler.parseSources();
         SpringApplication.run(ImdbqApplication.class, args);
     }
 
@@ -32,11 +25,11 @@ public class ImdbqApplication {
     @GetMapping(params = "query")
     public String getQueryResult(@RequestParam String query, ModelMap modelMap) {
         if (modelMap.containsKey("results")) {
-            modelMap.replace("results", ImdbqApplication.getWebCrawler().search(query).toString());
+            modelMap.replace("results", ImdbqApplication.getWebCrawler().search(query));
             modelMap.replace("query", query);
         }
         else {
-            modelMap.put("results", ImdbqApplication.getWebCrawler().search(query).toString());
+            modelMap.put("results", ImdbqApplication.getWebCrawler().search(query));
             modelMap.put("query", query);
         }
         return "index";

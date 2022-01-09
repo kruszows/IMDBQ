@@ -5,7 +5,7 @@ import java.util.TreeMap;
 public class BKTree {
 
     private BKNode root;
-    private TreeMap<String, BKNode> terms = new TreeMap<>();
+    private final TreeMap<String, BKNode> terms = new TreeMap<>();
 
     public BKNode closestMatchSearch(String query, int maxOffset) {
         if (terms.containsKey(query)) {
@@ -14,7 +14,7 @@ public class BKTree {
         return root.closestMatchSearch(query, maxOffset, new BKNode());
     }
 
-    public void add(String term, String associatedTerm) {
+    public synchronized void add(String term, String associatedTerm) {
         if (term != null && !term.isEmpty()) {
             BKNode newNode = new BKNode(term, associatedTerm);
             if (root == null) {

@@ -6,26 +6,31 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <form action="/" method="GET">
-        <label for="query"></label><input type="text" name="query" id="query" placeholder="enter search text"/>
-        <input type="submit" value="find">
-    </form>
-
-    <c:if test="${results != null}">
-        <c:choose>
-            <c:when test="${empty results}">
-                <h1>results for ${query}</h1>
-                <div>
-                    no matches found
-                </div>
-            </c:when>
-            <c:otherwise>
-                <h1>results for ${query}</h1>
-                <div>
-                    ${results}
-                </div>
-            </c:otherwise>
-        </c:choose>
-    </c:if>
+    <div class="splitScreen">
+        <form action="/" method="GET">
+            <label for="query"></label><input type="text" name="query" id="query" placeholder="enter search text"/>
+            <input type="submit" value="find">
+        </form>
+    </div>
+    <div class="splitScreen">
+        <c:if test="${results != null}">
+            <c:choose>
+                <c:when test="${empty results}">
+                    <h1>results for ${query}</h1>
+                    <div>
+                        no matches found
+                    </div>
+                </c:when>
+                <c:otherwise>
+                    <h1>results for ${query}</h1>
+                    <ul>
+                        <c:forEach items="${results}" var="result">
+                            <li>${result}</li>
+                        </c:forEach>
+                    </ul>
+                </c:otherwise>
+            </c:choose>
+        </c:if>
+    </div>
 </body>
 </html>

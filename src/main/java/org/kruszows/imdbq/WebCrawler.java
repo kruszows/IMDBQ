@@ -18,11 +18,13 @@ import java.util.TreeSet;
 
 public class WebCrawler {
 
-    private BKTree movieTermMap = new BKTree();
+    private static final BKTree movieTermMap = new BKTree();
     private static final HashSet<String> sectionsToExcludeByWidgetId = new HashSet<>();
-    private static final HashSet<String> summarySectionKnownSelectors = new HashSet<>();
-    private final String BASE_URL = "https://www.imdb.com/search/title/?groups=top_1000&view=simple&sort=user_rating,desc";
-    private final String USER_AGENT = "Mozilla/5.0";
+    private static final String SUMMARY_SECTION_SELECTOR = "Hero__MetaContainer";
+    private static final String MAIN_DETAIL_GROUP_SELECTOR = "TitleMainPrimaryGroup";
+    private static final String BASE_URL = "https://www.imdb.com/search/title/?groups=top_1000&sort=user_rating&view=simple";
+    private static final String USER_AGENT = "Mozilla/5.0";
+    private static final String REFERRER = "https://www.imdb.com";
 
     static {
         sectionsToExcludeByWidgetId.add("StaticFeature_MoreLikeThis");
@@ -31,35 +33,18 @@ public class WebCrawler {
         sectionsToExcludeByWidgetId.add("StaticFeature_Contribution");
         sectionsToExcludeByWidgetId.add("StaticFeature_BoxOffice");
         sectionsToExcludeByWidgetId.add("StaticFeature_TechSpecs");
-
-        summarySectionKnownSelectors.add("div.Hero__MetaContainer__Video-kvkd64-4");
-        summarySectionKnownSelectors.add("div.Hero__MetaContainer__Video-sc-kvkd64-4");
-        summarySectionKnownSelectors.add("div.Hero__MetaContainer__NoVideo-kvkd64-8");
     }
 
-    public void parseSources() throws IOException {
-        HashSet<Document> listingPages = getListingPages();
-        listingPages.parallelStream().forEach(page -> {
-            try {
-                parseListPage(page);
-            }
-            catch (IOException ex) {
-                System.err.println("could not parse " + page.location());
-            }
-        });
-    }
-
-    public HashSet<Document> getListingPages() {
-        HashSet<Document> listingPages = new HashSet<>();
+    public void parseSources() {
         try {
-            Document page = Jsoup.connect(BASE_URL).userAgent(USER_AGENT).get();
-            listingPages.add(page);
+            Document page = Jsoup.connect(BASE_URL).userAgent(USER_AGENT).referrer(REFERRER).header("Content-Language", "en-US").get();
+            new ListingPageParserThread(page).start();
             while (true) {
                 Element nextPageLink = page.selectFirst("a.next-page");
                 if (nextPageLink != null && nextPageLink.hasAttr("href")) {
                     try {
-                        page = Jsoup.connect(nextPageLink.absUrl("href")).userAgent(USER_AGENT).get();
-                        listingPages.add(page);
+                        page = Jsoup.connect(nextPageLink.absUrl("href")).userAgent(USER_AGENT).referrer(REFERRER).header("Content-Language", "en-US").get();
+                        new ListingPageParserThread(page).start();
                     }
                     catch (IOException ex) {
                         System.err.println("failed to connect: " + nextPageLink.absUrl("href"));
@@ -73,93 +58,8 @@ public class WebCrawler {
         catch (IOException ex) {
             System.err.println("failed to connect: " + BASE_URL);
         }
-        return listingPages;
     }
 
-    public void parseListPage(Document page) throws IOException {
-        HashSet<Element> linkElements = getLinkElements(page);
-        linkElements.parallelStream().forEach(link -> {
-            try {
-                parseMovieEntry(link);
-            }
-            catch (IOException ex) {
-                System.err.println("could not parse " + link.text());
-            }
-        });
-    }
-
-    public HashSet<Element> getLinkElements(Document page) {
-        HashSet<Element> linkElements = new HashSet<>();
-        Element listerElement = page.selectFirst("div.lister");
-        if (listerElement != null) {
-            Elements listElements = listerElement.getElementsByClass("lister-item-content");
-            for (Element listElement : listElements) {
-                Element titleElement = listElement.selectFirst("span.lister-item-header");
-                if (titleElement != null) {
-                    Element linkElement = titleElement.selectFirst("a");
-                    if (linkElement != null) {
-                        linkElements.add(linkElement);
-                    }
-                }
-            }
-        }
-        return linkElements;
-    }
-
-    public void parseMovieEntry (Element linkElement) throws IOException {
-        if (linkElement.hasAttr("href")) {
-            String title = linkElement.text().trim();
-            String movieDetailPageUrl = linkElement.absUrl("href");
-            try {
-                Document movieDetailDocument = Jsoup.connect(movieDetailPageUrl).userAgent(USER_AGENT).get();
-                for (Element relevantPageElement : extractMainMovieDetailElements(movieDetailDocument)) {
-                    getAllPlainTextAsWords(relevantPageElement, title);
-                }
-            }
-            catch (IOException ex) {
-                System.err.println("failed to connect: " + movieDetailPageUrl);
-            }
-        }
-    }
-
-    public HashSet<Element> extractMainMovieDetailElements(Document document) {
-        HashSet<Element> elements = new HashSet<>();
-        Element summarySection;
-        for (String summarySectionKnownSelector : summarySectionKnownSelectors) {
-            summarySection = document.selectFirst(summarySectionKnownSelector);
-            if (summarySection != null) {
-                elements.add(summarySection);
-                break;
-            }
-        }
-        Element mainDetailGroup = document.selectFirst("div.TitleMainBelowTheFoldGroup__TitleMainPrimaryGroup-sc-1vpywau-1");
-        if (mainDetailGroup != null) {
-            Elements mainDetailGroupSections = mainDetailGroup.getElementsByTag("section");
-            for (Element section : mainDetailGroupSections) {
-                if (!section.hasAttr("cel_widget_id") || !sectionsToExcludeByWidgetId.contains(section.attr("cel_widget_id"))) {
-                    elements.add(section);
-                }
-            }
-        }
-        return elements;
-    }
-
-    public void getAllPlainTextAsWords(Node node, String title) {
-        for (Node childNode : node.childNodes()) {
-            if (childNode instanceof TextNode) {
-                StringTokenizer stringTokenizer = new StringTokenizer(((TextNode) childNode).text());
-                while (stringTokenizer.hasMoreTokens()) {
-                    String word = normalize(stringTokenizer.nextToken());
-                    if (word.length() > 2) {
-                        movieTermMap.add(word, title);
-                    }
-                }
-            }
-            else {
-                getAllPlainTextAsWords(childNode, title);
-            }
-        }
-    }
 
     public static String normalize(String input) {
         return input.replaceAll("\\p{Punct}", "").toLowerCase();
@@ -188,6 +88,95 @@ public class WebCrawler {
             Cache.addQuery(query, closestMatch);
         }
         return Cache.getQuery(query);
+    }
+
+    private static class ListingPageParserThread extends Thread {
+
+        private final Document listingPage;
+
+        public ListingPageParserThread(Document listingPage) {
+            this.listingPage = listingPage;
+        }
+
+        @Override
+        public void run() {
+            Element listerElement = listingPage.selectFirst("div.lister");
+            if (listerElement != null) {
+                Elements listElements = listerElement.getElementsByClass("lister-item-content");
+                for (Element listElement : listElements) {
+                    Element titleElement = listElement.selectFirst("span.lister-item-header");
+                    if (titleElement != null) {
+                        Element linkElement = titleElement.selectFirst("a");
+                        if (linkElement != null) {
+                            new MovieEntryParserThread(linkElement).start();
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    private static class MovieEntryParserThread extends Thread {
+
+        private final Element linkElement;
+
+        public MovieEntryParserThread(Element linkElement) {
+            this.linkElement = linkElement;
+        }
+
+        @Override
+        public void run() {
+            if (linkElement.hasAttr("href")) {
+                String title = linkElement.text().trim();
+                String movieDetailPageUrl = linkElement.absUrl("href");
+                try {
+                    Document movieDetailDocument = Jsoup.connect(movieDetailPageUrl).userAgent(USER_AGENT).referrer(REFERRER).header("Content-Language", "en-US").get();
+                    for (Element relevantPageElement : extractMainMovieDetailElements(movieDetailDocument)) {
+                        getAllPlainTextAsWords(relevantPageElement, title);
+                    }
+                }
+                catch (IOException ex) {
+                    System.err.println("failed to connect: " + movieDetailPageUrl);
+                }
+            }
+        }
+
+        public HashSet<Element> extractMainMovieDetailElements(Document document) {
+            HashSet<Element> elements = new HashSet<>();
+            Element summarySection = document.selectFirst(String.format("div[class~=%s]", SUMMARY_SECTION_SELECTOR));
+            if (summarySection != null) {
+                elements.add(summarySection);
+            }
+            Element mainDetailGroup = document.selectFirst(String.format("div[class~=%s]", MAIN_DETAIL_GROUP_SELECTOR));
+            if (mainDetailGroup != null) {
+                Elements mainDetailGroupSections = mainDetailGroup.getElementsByTag("section");
+                for (Element section : mainDetailGroupSections) {
+                    if (!section.hasAttr("cel_widget_id") || !sectionsToExcludeByWidgetId.contains(section.attr("cel_widget_id"))) {
+                        elements.add(section);
+                    }
+                }
+            }
+            return elements;
+        }
+
+        public void getAllPlainTextAsWords(Node node, String title) {
+            for (Node childNode : node.childNodes()) {
+                if (childNode instanceof TextNode) {
+                    StringTokenizer stringTokenizer = new StringTokenizer(((TextNode) childNode).text());
+                    while (stringTokenizer.hasMoreTokens()) {
+                        String word = normalize(stringTokenizer.nextToken());
+                        if (word.length() > 2) {
+                            movieTermMap.add(word, title);
+                        }
+                    }
+                }
+                else {
+                    getAllPlainTextAsWords(childNode, title);
+                }
+            }
+        }
+
     }
 
 }

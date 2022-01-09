@@ -9,8 +9,7 @@ html {
     height: 100vh;
 }
 
-html, body, form {
-    width: 100vw;
+html, body {
     background-color: rgb(55,55,55);
 }
 
@@ -18,11 +17,15 @@ body {
     height: 90vh;
 }
 
-body, div {
+ul {
+    list-style-type: none;
+}
+
+body, ul, div {
     padding: 10%;
 }
 
-div, h1 {
+div, ul, h1 {
     background-color: rgb(50,50,50);
     border-color: rgb(40,40,40);
     font-size: larger;
@@ -31,17 +34,17 @@ div, h1 {
     margin: 0;
 }
 
-div {
-    width: 70vw;
-}
-
 h1 {
     width: fit-content;
     padding: 10px;
 }
 
-html, body, div {
+html {
     flex-direction: column;
+}
+
+body {
+    flex-direction: row;
 }
 
 form {
@@ -59,4 +62,10 @@ input, span, label, button, input:focus {
     box-shadow: none;
     outline: none;
     border-style: solid;
+}
+
+.splitScreen {
+    flex-direction: column;
+    height: 100vh;
+    width: 50vw;
 }
