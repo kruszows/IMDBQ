@@ -19,8 +19,8 @@ import java.util.TreeSet;
 public class WebCrawler {
 
     private BKTree movieTermMap = new BKTree();
-    private int moviesProcessed = 0;
     private static final HashSet<String> sectionsToExcludeByWidgetId = new HashSet<>();
+    private static final HashSet<String> summarySectionKnownSelectors = new HashSet<>();
     private final String BASE_URL = "https://www.imdb.com/search/title/?groups=top_1000&view=simple&sort=user_rating,desc";
     private final String USER_AGENT = "Mozilla/5.0";
 
@@ -31,6 +31,10 @@ public class WebCrawler {
         sectionsToExcludeByWidgetId.add("StaticFeature_Contribution");
         sectionsToExcludeByWidgetId.add("StaticFeature_BoxOffice");
         sectionsToExcludeByWidgetId.add("StaticFeature_TechSpecs");
+
+        summarySectionKnownSelectors.add("div.Hero__MetaContainer__Video-kvkd64-4");
+        summarySectionKnownSelectors.add("div.Hero__MetaContainer__Video-sc-kvkd64-4");
+        summarySectionKnownSelectors.add("div.Hero__MetaContainer__NoVideo-kvkd64-8");
     }
 
     public void parseSources() throws IOException {
@@ -111,7 +115,6 @@ public class WebCrawler {
                 for (Element relevantPageElement : extractMainMovieDetailElements(movieDetailDocument)) {
                     getAllPlainTextAsWords(relevantPageElement, title);
                 }
-                moviesProcessed++;
             }
             catch (IOException ex) {
                 System.err.println("failed to connect: " + movieDetailPageUrl);
@@ -121,11 +124,14 @@ public class WebCrawler {
 
     public HashSet<Element> extractMainMovieDetailElements(Document document) {
         HashSet<Element> elements = new HashSet<>();
-        Element summarySection = document.selectFirst("div.Hero__MetaContainer__Video-kvkd64-4");
-        if (summarySection == null) {
-            summarySection = document.selectFirst("div.Hero__MetaContainer__NoVideo-kvkd64-8");
+        Element summarySection;
+        for (String summarySectionKnownSelector : summarySectionKnownSelectors) {
+            summarySection = document.selectFirst(summarySectionKnownSelector);
+            if (summarySection != null) {
+                elements.add(summarySection);
+                break;
+            }
         }
-        elements.add(summarySection);
         Element mainDetailGroup = document.selectFirst("div.TitleMainBelowTheFoldGroup__TitleMainPrimaryGroup-sc-1vpywau-1");
         if (mainDetailGroup != null) {
             Elements mainDetailGroupSections = mainDetailGroup.getElementsByTag("section");
