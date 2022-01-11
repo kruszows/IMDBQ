@@ -21,7 +21,7 @@ public class WebCrawler {
     private static final BKTree movieTermMap = new BKTree();
     private static final HashSet<String> sectionsToExcludeByWidgetId = new HashSet<>();
     private static final String SUMMARY_SECTION_SELECTOR = "Hero__MetaContainer";
-    private static final String MAIN_DETAIL_GROUP_SELECTOR = "TitleMainPrimaryGroup";
+    private static final String MAIN_DETAIL_GROUP_SELECTOR = "MainColumnContent";
     private static final String BASE_URL = "https://www.imdb.com/search/title/?groups=top_1000&sort=user_rating&view=simple";
     private static final String USER_AGENT = "Mozilla/5.0";
     private static final String REFERRER = "https://www.imdb.com";
@@ -144,11 +144,11 @@ public class WebCrawler {
 
         public HashSet<Element> extractMainMovieDetailElements(Document document) {
             HashSet<Element> elements = new HashSet<>();
-            Element summarySection = document.selectFirst(String.format("div[class~=%s]", SUMMARY_SECTION_SELECTOR));
+            Element summarySection = document.selectFirst(String.format("div[class*=%s]", SUMMARY_SECTION_SELECTOR));
             if (summarySection != null) {
                 elements.add(summarySection);
             }
-            Element mainDetailGroup = document.selectFirst(String.format("div[class~=%s]", MAIN_DETAIL_GROUP_SELECTOR));
+            Element mainDetailGroup = document.selectFirst(String.format("div[class*=%s]", MAIN_DETAIL_GROUP_SELECTOR));
             if (mainDetailGroup != null) {
                 Elements mainDetailGroupSections = mainDetailGroup.getElementsByTag("section");
                 for (Element section : mainDetailGroupSections) {
